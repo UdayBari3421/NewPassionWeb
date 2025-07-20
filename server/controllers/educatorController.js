@@ -5,7 +5,7 @@ import { Purchase } from "../models/Purchase.model.js";
 
 export const updateRoleToEductor = async (req, res) => {
   try {
-    const userId = req.auth.userId;
+    const userId = req.auth().userId;
 
     await clerkClient.users.updateUserMetadata(userId, {
       publicMetadata: { role: "educator" },
@@ -22,7 +22,7 @@ export const addCourse = async (req, res) => {
     const { courseData } = req.body;
     const imageFile = req.file;
 
-    const educatorId = req.auth.userId;
+    const educatorId = req.auth().userId;
 
     if (!imageFile) {
       return res.json({ success: false, message: "Thumbnail not attached" }).status(400);
@@ -47,7 +47,7 @@ export const addCourse = async (req, res) => {
 
 export const getEducatorCourses = async (req, res) => {
   try {
-    const educator = req.auth.userId;
+    const educator = req.auth().userId;
     const courses = await Course.find({ educator });
     return res.json({ success: true, courses }).status(200);
   } catch (error) {
@@ -60,7 +60,7 @@ export const getEducatorCourses = async (req, res) => {
 
 export const educatorDashboardData = async (req, res) => {
   try {
-    const educator = req.auth.userId;
+    const educator = req.auth().userId;
     const courses = await Course.find({ educator });
     const totalCourses = courses.length;
 
@@ -110,7 +110,7 @@ export const educatorDashboardData = async (req, res) => {
 // get Enrolled Student data with purchase Data
 export const getEnrolledStudentsData = async () => {
   try {
-    const educator = req.auth.userId;
+    const educator = req.auth().userId;
     const courses = await Course.find({ educator });
     const courseIds = courses.map((course) => course._id);
 
