@@ -31,7 +31,7 @@ const courseSchema = new Schema(
     isPublished: { type: Boolean, default: true },
     discount: { type: Number, required: true, min: 0, max: 100 },
     courseContent: [chapterSchema],
-    courseRating: [
+    courseRatings: [
       {
         userId: { type: String },
         rating: { type: Number, min: 1, max: 5 },
