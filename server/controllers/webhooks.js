@@ -71,24 +71,54 @@ export const stripeWebHooks = async (request, response) => {
       const paymentIntent = event.data.object;
       const paymentIntentId = paymentIntent.id;
 
-      const session = await stripeInstance.checkout.sessions.list({
+      const sessionList = await stripeInstance.checkout.sessions.list({
         payment_intent: paymentIntentId,
       });
 
-      const { purchaseId } = session.data[0].metadata;
+      const session = sessionList.data[0];
+      if (!session || !session.metadata || !session.metadata.purchaseId) {
+        console.log("Missing session or metadata");
+        return response.status(400).send("Invalid session or metadata");
+      }
 
-      const purchaseData = await Purchase.findById(purchaseId);
-      const userData = await User.findById(purchaseData.userId);
-      const courseData = await Course.findById(purchaseData.courseId.toString());
+      const { purchaseId } = session.metadata;
 
-      courseData.enrolledStudents.push(userData);
-      await courseData.save();
+      try {
+        const purchaseData = await Purchase.findById(purchaseId);
+        if (!purchaseData) {
+          console.log(`Purchase not found for ID: ${purchaseId}`);
+          return response.status(400).send("Purchase not found");
+        }
 
-      userData.enrolledCourses.push(courseData._id);
-      await userData.save();
+        const userData = await User.findById(purchaseData.userId);
+        if (!userData) {
+          console.log(`User not found for ID: ${purchaseData.userId}`);
+          return response.status(400).send("User not found");
+        }
 
-      purchaseData.status = "completed";
-      await purchaseData.save();
+        const courseData = await Course.findById(purchaseData.courseId.toString());
+        if (!courseData) {
+          console.log(`Course not found for ID: ${purchaseData.courseId}`);
+          return response.status(400).send("Course not found");
+        }
+
+        // Check if user is already enrolled to prevent duplicates
+        if (!courseData.enrolledStudents.includes(userData._id)) {
+          courseData.enrolledStudents.push(userData._id);
+          await courseData.save();
+        }
+
+        if (!userData.enrolledCourses.includes(courseData._id)) {
+          userData.enrolledCourses.push(courseData._id);
+          await userData.save();
+        }
+
+        purchaseData.status = "completed";
+        await purchaseData.save();
+      } catch (error) {
+        console.error("Error processing payment success:", error);
+        return response.status(500).send("Error processing payment");
+      }
 
       break;
     }

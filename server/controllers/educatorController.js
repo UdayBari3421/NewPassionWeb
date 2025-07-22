@@ -34,6 +34,7 @@ export const addCourse = async (req, res) => {
     const newCourse = await Course.create(parsedCourseData);
     const imageUpload = await cloudinary.uploader.upload(imageFile.path);
     newCourse.courseThumbnail = imageUpload.secure_url;
+    // newCourse.enrolledStudents.push(educatorId);
 
     await newCourse.save();
 
@@ -78,7 +79,7 @@ export const educatorDashboardData = async (req, res) => {
     //Collect unique enrolled student Ids with there course title
     const enrolledStudentsData = [];
 
-    for (course of courses) {
+    for (const course of courses) {
       const students = await User.find(
         {
           _id: { $in: course.enrolledStudents },
