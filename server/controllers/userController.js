@@ -23,10 +23,77 @@ export const getUserData = async (req, res) => {
 export const userEnrolledCourses = async (req, res) => {
   try {
     const userId = req.auth().userId;
-    const userData = await User.findById(userId).populate("enrolledCourses");
 
-    return res.json({ success: true, enrolledCourses: userData.enrolledCourses });
+    // Find user and populate enrolledCourses with educator details
+    const userData = await User.findById(userId).populate({
+      path: "enrolledCourses",
+      populate: {
+        path: "educator",
+        select: "name email imageUrl",
+      },
+    });
+
+    if (!userData) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // Filter out any null/undefined courses (in case of deleted courses)
+    const validCourses = userData.enrolledCourses.filter((course) => course !== null);
+
+    return res.json({
+      success: true,
+      enrolledCourses: validCourses || [],
+    });
   } catch (error) {
+    console.error("Error in userEnrolledCourses:", error);
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+// Add course to user's enrolled courses (for testing/manual enrollment)
+export const addCourseToUser = async (req, res) => {
+  try {
+    const userId = req.auth().userId;
+    const { courseId } = req.body;
+
+    if (!courseId) {
+      return res.json({ success: false, message: "Course ID is required" });
+    }
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.json({ success: false, message: "Course not found" });
+    }
+
+    // Check if user is already enrolled
+    if (user.enrolledCourses.includes(courseId)) {
+      return res.json({ success: false, message: "User already enrolled in this course" });
+    }
+
+    // Add course to user's enrolledCourses
+    user.enrolledCourses.push(courseId);
+    await user.save();
+
+    // Add user to course's enrolledStudents
+    if (!course.enrolledStudents.includes(userId)) {
+      course.enrolledStudents.push(userId);
+      await course.save();
+    }
+
+    return res.json({
+      success: true,
+      message: "Course added to user successfully",
+      courseTitle: course.courseTitle,
+    });
+  } catch (error) {
+    console.error("Error in addCourseToUser:", error);
     return res.json({ success: false, message: error.message });
   }
 };
@@ -117,7 +184,7 @@ export const updateUserCourseProgress = async (req, res) => {
 };
 
 // get user courseProgress
-export const getUserCourseProgress = async () => {
+export const getUserCourseProgress = async (req, res) => {
   try {
     const userId = req.auth().userId;
     const { courseId } = req.body;
@@ -125,6 +192,7 @@ export const getUserCourseProgress = async () => {
 
     return res.json({ success: true, progressData });
   } catch (error) {
+    console.error("Error in getUserCourseProgress:", error);
     return res.json({ success: false, message: error.message });
   }
 };

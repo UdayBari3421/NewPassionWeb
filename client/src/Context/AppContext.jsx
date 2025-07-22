@@ -104,13 +104,11 @@ export const AppContextProvider = (props) => {
       });
 
       if (data.success) {
-        console.log(data);
         setEnrolledCourses(data.enrolledCourses.reverse());
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log("Request Error:", error);
       toast.error(error.message);
     }
   };
@@ -119,16 +117,12 @@ export const AppContextProvider = (props) => {
     fetchAllCourses();
   }, []);
 
-  const logToken = async () => {
-    console.log(await getToken());
-  };
   useEffect(() => {
     if (user) {
-      logToken();
       fetchUserData();
       fetchEnrolledCourses();
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const value = {
     currency,

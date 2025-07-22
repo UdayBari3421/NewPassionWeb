@@ -6,6 +6,8 @@ import { assets } from "../../assets/assets";
 import humanizeDuration from "humanize-duration";
 import Footer from "../../Components/Student/Footer";
 import YouTube from "react-youtube";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const CourseDetail = () => {
   const { id } = useParams();
@@ -22,16 +24,61 @@ const CourseDetail = () => {
     calculateCourseDuration,
     calculateChapterTime,
     currency,
+    backendUrl,
+    userData,
+    getToken,
   } = useContext(AppContext);
 
   const fetchCourseData = async () => {
-    const findCourse = allCourses.find((course) => course._id === id);
-    setCourseData(findCourse);
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/course/${id}`);
+      if (data.success) {
+        setCourseData(data.courseData);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const enrollCourse = async () => {
+    try {
+      if (!userData) {
+        toast.warn("Login to Enroll!");
+      }
+      if (isAlreadyEnrolled) {
+        toast.warn("You are Already Enrolled");
+      }
+
+      const token = await getToken();
+
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/purchase`,
+        { courseId: courseData._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (data.success) {
+        const { session_url } = data;
+        window.location.replace(session_url);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   useEffect(() => {
     fetchCourseData();
-  }, [allCourses]);
+  }, []);
+
+  useEffect(() => {
+    if (userData && courseData) {
+      setIsAlreadyEnrolled(userData.enrolledCourses.includes(courseData._id));
+    }
+  }, [userData, courseData]);
 
   const toggleSection = (index) => {
     setOpenSection((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -74,14 +121,16 @@ const CourseDetail = () => {
             </p>
           </div>
           <p className="text-sm ">
-            Course by <span className="text-primary underline">Manoj Kumavat</span>
+            Course by <span className="text-primary underline">{courseData.educator.name}</span>
           </p>
           <div className="pt-8 text-gray-800">
             <h2 className="text-xl font-semibold">Course Structure</h2>
 
             <div className="pt-5">
               {courseData.courseContent.map((chapter, index) => (
-                <div key={index} className="border border-gray-300 bg-white mb-2 rounded">
+                <div
+                  key={index}
+                  className="border border-gray-300 bg-white mb-2 rounded">
                   <div
                     onClick={() => toggleSection(index)}
                     className="flex items-center justify-between px-4 py-3 cursor-pointer select-none">
@@ -106,12 +155,18 @@ const CourseDetail = () => {
                     }`}>
                     <ul className="list-disc md:pl-10 px-4 py-2 text-gray-600 border-t border-gray-300">
                       {chapter.chapterContent.map((lecture, i) => (
-                        <li className="flex items-start gap-2 py-1" key={i}>
-                          <img className="w-4 h-4 mt-1" src={assets.play_icon} alt="play icon" />
+                        <li
+                          className="flex items-start gap-2 py-1"
+                          key={i}>
+                          <img
+                            className="w-4 h-4 mt-1"
+                            src={assets.play_icon}
+                            alt="play icon"
+                          />
                           <div className="flex items-center justify-between w-full text-gray-800 text-xs md:text-default">
                             <p>{lecture.lectureTitle}</p>
                             <div className="flex gap-2">
-                              {lecture.isPreviewFree && (
+                              {lecture.isPreviewFree ? (
                                 <p
                                   onClick={() =>
                                     setPlayData({
@@ -121,6 +176,8 @@ const CourseDetail = () => {
                                   className="text-primary cursor-pointer">
                                   Preview
                                 </p>
+                              ) : (
+                                <></>
                               )}
                               <p>
                                 {humanizeDuration(lecture.lectureDuration * 60 * 1000, {
@@ -158,11 +215,17 @@ const CourseDetail = () => {
               iframeClassName="w-full aspect-video"
             />
           ) : (
-            <img src={courseData.courseThumbnail} alt="" />
+            <img
+              src={courseData.courseThumbnail}
+              alt=""
+            />
           )}
           <div className="p-5">
             <div className="flex items-center gap-2">
-              <img src={assets.time_left_clock_icon} alt="time left clock icon" />
+              <img
+                src={assets.time_left_clock_icon}
+                alt="time left clock icon"
+              />
               <p className="text-red-500">
                 <span className="font-medium">5 days</span> left at this price!
               </p>
@@ -183,25 +246,35 @@ const CourseDetail = () => {
             </div>
             <div className="flex items-center text-sm md:text-default gap-4 pt-2 md:pt-4 text-gray-500">
               <div className="flex items-center gap-1">
-                <img src={assets.star} alt="star icon" />
+                <img
+                  src={assets.star}
+                  alt="star icon"
+                />
                 <p>{calculateRating(courseData)}</p>
               </div>
 
               <div className="h-4 w-px bg-gray-500/40"></div>
 
               <div className="flex items-center gap-1">
-                <img src={assets.time_clock_icon} alt="clock icon" />
+                <img
+                  src={assets.time_clock_icon}
+                  alt="clock icon"
+                />
                 <p>{calculateCourseDuration(courseData)}</p>
               </div>
 
               <div className="h-4 w-px bg-gray-500/40"></div>
 
               <div className="flex items-center gap-1">
-                <img src={assets.lesson_icon} alt="clock icon" />
+                <img
+                  src={assets.lesson_icon}
+                  alt="clock icon"
+                />
                 <p>{calculateNoOfLectures(courseData)} lessons</p>
               </div>
             </div>
             <button
+              onClick={enrollCourse}
               className={`md:mt-6 mt-4 w-full py-3 rounded  text-white font-medium ${
                 isAlreadyEnrolled ? "disabled bg-gray-400" : "bg-primary"
               }`}>

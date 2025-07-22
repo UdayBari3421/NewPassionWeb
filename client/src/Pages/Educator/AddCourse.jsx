@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import uniqid from "uniqid";
 import { assets } from "../../assets/assets";
 import Quill from "quill";
+import { useContext } from "react";
+import { AppContext } from "../../Context/AppContext";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const AddCourse = () => {
+  const { backendUrl, getToken } = useContext(AppContext);
+
   const quilRef = useRef(null);
   const editorRef = useRef(null);
 
@@ -89,7 +95,43 @@ const AddCourse = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    try {
+      e.preventDefault();
+      if (!image) {
+        toast.error("Thumbnail not selected");
+      }
+
+      const courseData = {
+        courseTitle,
+        courseDescription: quilRef.current.root.innerHTML,
+        coursePrice: Number(coursePrice),
+        discount: Number(discount),
+        courseContent: chapters,
+      };
+
+      const formData = new FormData();
+      formData.append("courseData", JSON.stringify(courseData));
+      formData.append("image", image);
+
+      const token = await getToken();
+      const { data } = await axios.post(`${backendUrl}/api/educator/add-course`, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data.success) {
+        toast.success(data.message);
+        setCourseTitle("");
+        setCoursePrice(0);
+        setDiscount(0);
+        setImage(null);
+        setChapters([]);
+        quilRef.current.root.innerHTML = "";
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   useEffect(() => {
@@ -102,7 +144,9 @@ const AddCourse = () => {
 
   return (
     <div className="h-screen overflow-scroll flex flex-col items-start justify-between md:p-8 md:pb-0 p-4 pt-8 pb-0">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-md w-full text-gray-500">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-4 max-w-md w-full text-gray-500">
         <div className="flex flex-col gap-1">
           <p>Course Title</p>
           <input
@@ -116,7 +160,9 @@ const AddCourse = () => {
         </div>
         <div className="flex flex-col gap-1">
           <p>Course Desccription</p>
-          <div className="" ref={editorRef}></div>
+          <div
+            className=""
+            ref={editorRef}></div>
         </div>
 
         <div className="flex items-center justify-between flex-wrap">
@@ -133,8 +179,14 @@ const AddCourse = () => {
           </div>
           <div className="flex md:flex-row flex-col items-center gap-3">
             <p>Course Thumbnail</p>
-            <label htmlFor="thumbnailImage" className="flex items-center gap-3">
-              <img src={assets.file_upload_icon} alt="" className="p-3 bg-blue-500 rounded" />
+            <label
+              htmlFor="thumbnailImage"
+              className="flex items-center gap-3">
+              <img
+                src={assets.file_upload_icon}
+                alt=""
+                className="p-3 bg-blue-500 rounded"
+              />
               <input
                 type="file"
                 id="thumbnailImage"
@@ -142,7 +194,11 @@ const AddCourse = () => {
                 accept="image/*"
                 hidden
               />
-              <img className="max-h-10" src={image ? URL.createObjectURL(image) : null} alt="" />
+              <img
+                className="max-h-10"
+                src={image ? URL.createObjectURL(image) : null}
+                alt=""
+              />
             </label>
           </div>
         </div>
@@ -162,7 +218,9 @@ const AddCourse = () => {
         {/* Adding Chapters and Lectures */}
         <div className="">
           {chapters.map((chapter, chapterIndex) => (
-            <div key={chapterIndex} className="bg-white border rounded-lg mb-4">
+            <div
+              key={chapterIndex}
+              className="bg-white border rounded-lg mb-4">
               <div className="flex justify-between items-center p-4 border-b">
                 <div className="flex items-center">
                   <img
@@ -189,10 +247,15 @@ const AddCourse = () => {
               {!chapter.collapsed && (
                 <div className="p-4">
                   {chapter.chapterContent.map((lecture, lectureIndex) => (
-                    <div className="flex justify-between items-center mb-2" key={lectureIndex}>
+                    <div
+                      className="flex justify-between items-center mb-2"
+                      key={lectureIndex}>
                       <span>
                         {lectureIndex + 1} {lecture.lectureTitle} - {lecture.lectureDuration} mins -
-                        <a href={lecture.lectureUrl} target="_blank" className="text-primary">
+                        <a
+                          href={lecture.lectureUrl}
+                          target="_blank"
+                          className="text-primary">
                           Link
                         </a>
                         - {lecture.isPreviewFree ? "Free Preview" : "Paid"}
@@ -288,7 +351,9 @@ const AddCourse = () => {
             </div>
           )}
         </div>
-        <button type="submit" className="bg-black text-white w-max py-2.5 px-8 rounded my-4">
+        <button
+          type="submit"
+          className="bg-black text-white w-max py-2.5 px-8 rounded my-4">
           Add
         </button>
       </form>
