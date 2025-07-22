@@ -1,15 +1,15 @@
 import React from "react";
 import { Route, Routes, useMatch } from "react-router-dom";
-import Home from "./pages/Student/Home";
-import CoursesList from "./pages/Student/CoursesList";
+import Home from "./Pages/Student/Home";
+import CoursesList from "./Pages/Student/CoursesList";
 import CourseDetails from "./Pages/Student/CourseDetails";
-import MyEnrollments from "./pages/Student/MyEnrollments";
-import Player from "./pages/Student/Player";
+import MyEnrollments from "./Pages/Student/MyEnrollments";
+import Player from "./Pages/Student/Player";
 import Loading from "./Components/Student/Loading";
-import Educator from "./pages/Educator/Educator";
-import Dashboard from "./pages/Educator/Dashboard";
-import AddCourse from "./pages/Educator/AddCourse";
-import MyCourses from "./pages/Educator/MyCourses";
+import Educator from "./Pages/Educator/Educator";
+import Dashboard from "./Pages/Educator/Dashboard";
+import AddCourse from "./Pages/Educator/AddCourse";
+import MyCourses from "./Pages/Educator/MyCourses";
 import StudentsEnrolled from "./Pages/Educator/StudentsEnrolled";
 import Navbar from "./Components/Student/Navbar";
 
